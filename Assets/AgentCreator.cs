@@ -12,8 +12,6 @@ public class AgentCreator : MonoBehaviour {
 	private List<AgentInitialiser> population = new List<AgentInitialiser>();
 	public int populationAmount;
 	public Transform origin; // will be used as the original starting position of the agents before being altered.
-	public AnimationCurve sexualityPercentageCurve;
-	public AnimationCurve genderMasculinityPercentage;
 
 
 	// !!reproduction stuff!!
@@ -23,13 +21,18 @@ public class AgentCreator : MonoBehaviour {
 	public AnimationCurve biasedTowardsPossibilityCurve;
 	public AnimationCurve biasedAgainstPossibilityCurve;
 
-	public AnimationCurve sexAndGenderValueFinderCurve; // used to get a biased towards 2 but can be between 1 and 4 parents/genders/sexes value.
-	// number of parents is also the number of sexes AND genders that are in the society.
-	private int numOfSexesAndGenders; // The amount of sexes and genders in the soceity.
+	// used to get a biased towards 2 but can be between 1 and 4 parents/genders/sexes value.
+	public AnimationCurve sexAndGenderValueFinderCurve; 
+
+	// The amount of sexes and genders in the soceity.
+	private int numOfSexesAndGenders;
+
 	// Sexes who can give birth.
 	private int sexWhoCanGiveBirth;
+
 	// The number required to breed -> will be the same as th enumber of sexs
 	private int numNeedToBreed;
+
 	//!!END of reproduction stuff!!
 
 
@@ -117,10 +120,11 @@ public class AgentCreator : MonoBehaviour {
 
 			// numOfSexes biased animation curves then randomly generate the values to which will then be used as such: w% = w/(w+x+y+z)
 			for(int j = 0; j < numOfSexesAndGenders; j++){
-				// Ensure that a biased animation curve is used when evaluating the genderNorms of each sex.
+				// Ensure that a biased animation curve is used when evaluating the gender Norms / sexualPreference Norms of each sex.
 				if (agent.sex == j) {
 					agent.gender.Add(getPercentageFromAnimCurve (biasedTowardsPossibilityCurve));
 					//Debug.Log ("Agent's gender value at element " + j + ": " + agent.gender.ElementAt(j));
+					agent.sexPreferences.Add(getPercentageFromAnimCurve (biasedAgainstPossibilityCurve)); // more likely to be most interested in other genders - not same gender.
 				} else {
 					// Randomly assign which animation curve for each aspect of the gender of the agent that isnt the genderNorm of the sex.
 					int whichAnimCurve = Random.Range (0, 3);
@@ -128,14 +132,17 @@ public class AgentCreator : MonoBehaviour {
 					case 0:
 						agent.gender.Add(getPercentageFromAnimCurve (biasedTowardsPossibilityCurve));
 						//Debug.Log ("Agent's gender value at element " + j + ": " + agent.gender.ElementAt(j));
+						agent.sexPreferences.Add(getPercentageFromAnimCurve (biasedTowardsPossibilityCurve));
 						break;
 					case 1:
 						agent.gender.Add(getPercentageFromAnimCurve (linearPossibilityCurve));
 						//Debug.Log ("Agent's gender value at element " + j + ": "+ agent.gender.ElementAt(j));
+						agent.sexPreferences.Add(getPercentageFromAnimCurve (linearPossibilityCurve));
 						break;
 					case 2:
 						agent.gender.Add(getPercentageFromAnimCurve (biasedAgainstPossibilityCurve));
 						//Debug.Log ("Agent's gender value at element " + j + ": " + agent.gender.ElementAt(j));
+						agent.sexPreferences.Add(getPercentageFromAnimCurve (biasedAgainstPossibilityCurve));
 						break;
 					}
 				}
@@ -145,21 +152,29 @@ public class AgentCreator : MonoBehaviour {
 			float genderAspectsTotal = default(float);
 			// To do this, we first sum all of the aspects of the agent's gender
 			genderAspectsTotal = agent.gender.Sum(); 
+
 			// We then make each of the elements into percentages
 			for(int aspectOfGender = 0; aspectOfGender < agent.gender.Count; aspectOfGender++){
 				agent.gender[aspectOfGender] = agent.gender.ElementAt (aspectOfGender) / genderAspectsTotal; 
-				Debug.Log ("Agent's gender percentage for element " + aspectOfGender + ": " + agent.gender.ElementAt(aspectOfGender));
+				//Debug.Log (agent.appearance.name + "'s gender percentage for element " + aspectOfGender + ": " + agent.gender.ElementAt(aspectOfGender));
 			}
 			// All percentages added together should make 1
-			Debug.Log ("Total percentage: " + agent.gender.Sum());
+			//Debug.Log (agent.appearance.name + "'s total gender percentage: " + agent.gender.Sum());
 
+			// We do the same for the sexual preferences!
+			//Debug.Log (agent.appearance.name + "'s sex: " + agent.sex);
+			float sexualPreferenceAspectsTotal = default(float);
+			sexualPreferenceAspectsTotal = agent.sexPreferences.Sum(); 
 
+			for(int aspectOfSexualPreference = 0; aspectOfSexualPreference < agent.gender.Count; aspectOfSexualPreference++){
+				agent.sexPreferences[aspectOfSexualPreference] = agent.sexPreferences.ElementAt (aspectOfSexualPreference) / sexualPreferenceAspectsTotal; 
+				//Debug.Log (agent.appearance.name + "'s sexual preference percentage for element " + aspectOfSexualPreference + ": " + agent.sexPreferences.ElementAt(aspectOfSexualPreference));
+			}
+			// All percentages added together should make 1
+			//Debug.Log (agent.appearance.name + "'s total sexual preference percentage: " + agent.sexPreferences.Sum());
 
-			// Next: Do Something similar to above, for this too...
-			agent.oppositeSexPreference = getPercentageFromAnimCurve (sexualityPercentageCurve);
-
-
-
+			// Set the colour of the agent based on their percentages of each gender aspect.
+			ColourCreator.getColour(agent);
 
 			//add them to the population.
 			population.Add(agent);
@@ -217,42 +232,16 @@ public class AgentInitialiser {
 	public List<float> gender = new List<float>(); // Each sex will have numOfGender elements.
 	public int sex;
 	public bool alive;
-	//public string[] personality;
-	public float oppositeSexPreference;
-	private AgentInitialiser mother;
-	private AgentInitialiser father;
-	private AgentInitialiser[] children;
+	public List<float> sexPreferences = new List<float>();
 
 	// Moves the id number along so no agent has the same ID.
 	public static int getNextId(){
 		return lastId++;
 	}
-
-	// Coordinates the colour of the agent to be blue if male and red for female
-	/**public void setColour(SexChoices sexToColour){
-		Color targetColour = default(Color);
-
-		switch(sexToColour){
-		case SexChoices.Male:
-			targetColour = Color.blue;
-			break;
-
-
-		case SexChoices.Female:
-			targetColour = Color.red;
-			break;
-		
-		}
-
-		// Apply to appropriate colour.
-		appearance.GetComponent<Renderer> ().material.color = targetColour;
-
-	}*/
 		
 }
 
-public static class ShuffleExtension
-{
+public static class ShuffleExtension{
 	private static System.Random rng = new System.Random();  
 
 	public static void Shuffle<T>(this IList<T> list)  
@@ -265,5 +254,46 @@ public static class ShuffleExtension
 			list[k] = list[n];  
 			list[n] = value;  
 		}  
+	}
+}
+
+public static class ColourCreator{
+
+	public static void getColour(AgentInitialiser agent){
+		Color[] colours = {
+			new Color (1.0F, 0.0F, 0.0F, 1.0F),
+			new Color (0.0F, 1.0F, 0.0F, 1.0F),
+			new Color (0.0F, 0.0F, 1.0F, 1.0F),
+			new Color (1.0F, 1.0F, 0.0F, 1.0F)
+		};
+
+		Color agentColour = new Color (0.0F, 0.0F, 0.0F, 1.0F);
+
+		int numOfGenders = agent.gender.Count;
+
+		for(int i = 0; i < numOfGenders; i++){
+			
+			// apply percentages to each colour up to the number of genders.
+			colours [i].r *= agent.gender.ElementAt (i); 
+			// normalise based on the number of genders there are.
+			colours[i].r /= numOfGenders;
+
+			// Do this for R, G and B of the colours used.
+			colours [i].g *= agent.gender.ElementAt (i); 
+			colours[i].g /= numOfGenders;
+
+			colours[i].b *= agent.gender.ElementAt (i); 
+			colours[i].b /= numOfGenders;
+		}
+
+		// Now, sum the colours used up and set the agent's r,g and b values to be the sums.
+		for (int i = 0; i < numOfGenders; i++) {
+			agentColour.r += colours [i].r;
+			agentColour.g += colours [i].g;
+			agentColour.b += colours [i].b;
+		}
+
+		// Apply the colour to the agent.
+		agent.appearance.GetComponent<Renderer> ().material.color = agentColour;	
 	}
 }
