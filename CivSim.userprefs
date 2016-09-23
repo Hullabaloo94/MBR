@@ -1,9 +1,9 @@
 ﻿<Properties StartupItem="Assembly-CSharp.csproj">
   <MonoDevelop.Ide.Workspace ActiveConfiguration="Debug" PreferredExecutionTarget="Unity.Instance.Unity Editor" />
-  <MonoDevelop.Ide.Workbench ActiveDocument="Assets\AgentCreator.cs">
+  <MonoDevelop.Ide.Workbench ActiveDocument="Assets\AgentBehaviour.cs">
     <Files>
-      <File FileName="Assets\AgentCreator.cs" Line="225" Column="32" />
-      <File FileName="Assets\AgentBehaviour.cs" Line="1" Column="1" />
+      <File FileName="Assets\AgentCreator.cs" Line="44" Column="5" />
+      <File FileName="Assets\AgentBehaviour.cs" Line="29" Column="4" />
     </Files>
   </MonoDevelop.Ide.Workbench>
   <MonoDevelop.Ide.DebuggingService.Breakpoints>

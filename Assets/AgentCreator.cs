@@ -41,7 +41,7 @@ public class AgentCreator : MonoBehaviour {
 	{
 		// Generate the number of sexes and genders that will form the society
 		numOfSexesAndGenders = (int) Mathf.Round(getPercentageFromAnimCurve(sexAndGenderValueFinderCurve));
-		Debug.Log ("The amount of sexes in the society is: " + numOfSexesAndGenders);
+		//Debug.Log ("The amount of sexes in the society is: " + numOfSexesAndGenders);
 
 		// The amount to breed is set to the number of sexs because why have sexes which aren't doing anything.
 		numNeedToBreed = numOfSexesAndGenders;
@@ -114,6 +114,7 @@ public class AgentCreator : MonoBehaviour {
 
 			agent.age = Random.Range (20, 50);
 			agent.alive = true;
+			agent.loyalty = Random.value * 100;
 			agent.libido = Random.Range (0, 101);
 
 			//..
@@ -188,14 +189,13 @@ public class AgentCreator : MonoBehaviour {
 
 
 	private void showAttributes(AgentInitialiser agent){ // Just outputs to console the particular agents attribute information.
-		Debug.Log ("Agent Id: " + agent.id);
+		//Debug.Log ("Agent Id: " + agent.id);
 		//Debug.Log ("Alive: " + agent.alive);
-		Debug.Log ("Sex: " + agent.sex);
+		//Debug.Log ("Sex: " + agent.sex);
 		//Debug.Log ("genderMasculinityPercentage: " + agent.genderMasculinityPercentage);
 		//Debug.Log ("Age: " + agent.age);
 		//Debug.Log ("Libido: " + agent.libido);
-		//Debug.Log ("Opposite Sex Preference: " + agent.oppositeSexPreference);
-
+		Debug.Log("Loyalty: " + agent.loyalty);
 	}
 
 	public int genIdx(int numOfElements){
@@ -221,9 +221,27 @@ public class AgentCreator : MonoBehaviour {
 		
 }
 	
+public class Link
+{
+	public AgentInitialiser to;
+	public AgentInitialiser from;
+
+	public string type;
+	public float strength;
+
+	public Link(string type, AgentInitialiser from, AgentInitialiser to, float strength)
+	{
+		this.type = type;
+		this.to = to;
+		this.from = from;
+		this.strength = strength;
+	}
+}
+
 //Used to set up an agent.
 public class AgentInitialiser {
 
+	public List<Link> links = new List<Link>();
 	private static int lastId = 0;
 	public int id;
 	public GameObject appearance;
@@ -233,6 +251,7 @@ public class AgentInitialiser {
 	public int sex;
 	public bool alive;
 	public List<float> sexPreferences = new List<float>();
+	public float loyalty;
 
 	// Moves the id number along so no agent has the same ID.
 	public static int getNextId(){
