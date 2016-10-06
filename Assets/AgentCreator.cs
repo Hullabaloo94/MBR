@@ -174,6 +174,13 @@ public class AgentCreator : MonoBehaviour {
 			// All percentages added together should make 1
 			//Debug.Log (agent.appearance.name + "'s total sexual preference percentage: " + agent.sexPreferences.Sum());
 
+
+
+
+
+
+
+
 			// Set the colour of the agent based on their percentages of each gender aspect.
 			ColourCreator.getColour(agent);
 
