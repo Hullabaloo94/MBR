@@ -1,10 +1,19 @@
 fileFormatVersion: 2
-guid: 4f4a35b536bfb9c4fb52e9bebb122d61
-timeCreated: 1474366374
+guid: c539c88f2ca95714baec99ef2dfc362d
+timeCreated: 1476116978
 licenseType: Free
 MonoImporter:
   serializedVersion: 2
-  defaultReferences: []
+  defaultReferences:
+  - agentPrefab: {fileID: 1000013876768062, guid: 1b00a94b8a2217c4aa4fb90b49681c9f,
+      type: 2}
+  - agent2Prefab: {fileID: 1000014004781204, guid: d42a2f721dc7ae44a9d0eea87f6fbaa7,
+      type: 2}
+  - agent3Prefab: {fileID: 1000013530478088, guid: ee2e7b99cebd4074ea2dc8965fc8c855,
+      type: 2}
+  - agent4Prefab: {fileID: 1000010140337228, guid: 38b784bb1d7878745b478c3b95099eaa,
+      type: 2}
+  - origin: {fileID: 4000013961410232, guid: ee7ffa6a5199e9b48a4799385579e7b7, type: 2}
   executionOrder: 0
   icon: {instanceID: 0}
   userData: 

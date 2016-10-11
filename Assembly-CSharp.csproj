@@ -47,6 +47,7 @@
   <ItemGroup>
      <Compile Include="Assets\AgentBehaviour.cs" />
      <Compile Include="Assets\AgentCreator.cs" />
+     <Compile Include="Assets\oldBehaviourScript.cs" />
  <Reference Include="UnityEngine.UI">
  <HintPath>C:/Program Files/Unity/Editor/Data/UnityExtensions/Unity/GUISystem/UnityEngine.UI.dll</HintPath>
  </Reference>

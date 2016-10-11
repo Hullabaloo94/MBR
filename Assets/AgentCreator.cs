@@ -47,7 +47,7 @@ public class AgentCreator : MonoBehaviour {
 		numNeedToBreed = numOfSexesAndGenders;
 		//Debug.Log ("numToBreed: " + numNeedToBreed);
 
-		// Establish the child carrier sex/s of the society
+		// Establish the child carrier sex of the society
 		if(numOfSexesAndGenders > 1){
 			// Not asexual so establish the carrier sex/s...
 
@@ -259,6 +259,8 @@ public class AgentInitialiser {
 	public bool alive;
 	public List<float> sexPreferences = new List<float>();
 	public float loyalty;
+	public Dictionary<int, float> agentAttractionPercentages = new Dictionary<int, float> (); 
+	public List<AgentInitialiser> agentsICanSee = new List<AgentInitialiser>();
 
 	// Moves the id number along so no agent has the same ID.
 	public static int getNextId(){
