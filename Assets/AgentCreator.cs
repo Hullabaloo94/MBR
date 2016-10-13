@@ -25,13 +25,10 @@ public class AgentCreator : MonoBehaviour {
 	public AnimationCurve sexAndGenderValueFinderCurve; 
 
 	// The amount of sexes and genders in the soceity.
-	private int numOfSexesAndGenders;
+	public static int numOfSexesAndGenders;
 
 	// Sexes who can give birth.
 	private int sexWhoCanGiveBirth;
-
-	// The number required to breed -> will be the same as th enumber of sexs
-	private int numNeedToBreed;
 
 	//!!END of reproduction stuff!!
 
@@ -41,11 +38,7 @@ public class AgentCreator : MonoBehaviour {
 	{
 		// Generate the number of sexes and genders that will form the society
 		numOfSexesAndGenders = (int) Mathf.Round(getPercentageFromAnimCurve(sexAndGenderValueFinderCurve));
-		//Debug.Log ("The amount of sexes in the society is: " + numOfSexesAndGenders);
-
-		// The amount to breed is set to the number of sexs because why have sexes which aren't doing anything.
-		numNeedToBreed = numOfSexesAndGenders;
-		//Debug.Log ("numToBreed: " + numNeedToBreed);
+		Debug.Log ("The amount of sexes in the society is: " + numOfSexesAndGenders);
 
 		// Establish the child carrier sex of the society
 		if(numOfSexesAndGenders > 1){
@@ -89,6 +82,11 @@ public class AgentCreator : MonoBehaviour {
 			//generate the agent some attributes
 			agent.id = AgentInitialiser.getNextId();
 			agent.sex = genIdx (numOfSexesAndGenders);
+
+			// set if they can give birth or not.
+			if(agent.sex == sexWhoCanGiveBirth){
+				agent.canGiveBirth = true;
+			}
 
 			//instantiation stuff
 			switch(agent.sex){
@@ -174,13 +172,6 @@ public class AgentCreator : MonoBehaviour {
 			// All percentages added together should make 1
 			//Debug.Log (agent.appearance.name + "'s total sexual preference percentage: " + agent.sexPreferences.Sum());
 
-
-
-
-
-
-
-
 			// Set the colour of the agent based on their percentages of each gender aspect.
 			ColourCreator.getColour(agent);
 
@@ -198,11 +189,12 @@ public class AgentCreator : MonoBehaviour {
 	private void showAttributes(AgentInitialiser agent){ // Just outputs to console the particular agents attribute information.
 		//Debug.Log ("Agent Id: " + agent.id);
 		//Debug.Log ("Alive: " + agent.alive);
-		//Debug.Log ("Sex: " + agent.sex);
+		Debug.Log ("Sex: " + agent.sex);
 		//Debug.Log ("genderMasculinityPercentage: " + agent.genderMasculinityPercentage);
 		//Debug.Log ("Age: " + agent.age);
 		//Debug.Log ("Libido: " + agent.libido);
-		Debug.Log("Loyalty: " + agent.loyalty);
+		//Debug.Log("Loyalty: " + agent.loyalty);
+		Debug.Log("Can agent give birth: " + agent.canGiveBirth);
 	}
 
 	public int genIdx(int numOfElements){
@@ -223,9 +215,6 @@ public class AgentCreator : MonoBehaviour {
 	void Update () {
 		
 	}
-
-
-		
 }
 	
 public class Link
@@ -252,15 +241,18 @@ public class AgentInitialiser {
 	private static int lastId = 0;
 	public int id;
 	public GameObject appearance;
-	public int libido;
 	public int age;
 	public List<float> gender = new List<float>(); // Each sex will have numOfGender elements.
 	public int sex;
 	public bool alive;
 	public List<float> sexPreferences = new List<float>();
-	public float loyalty;
 	public Dictionary<int, float> agentAttractionPercentages = new Dictionary<int, float> (); 
 	public List<AgentInitialiser> agentsICanSee = new List<AgentInitialiser>();
+	public bool canGiveBirth = false;
+	public bool pregnant = false;
+
+	public float loyalty;
+	public int libido;
 
 	// Moves the id number along so no agent has the same ID.
 	public static int getNextId(){

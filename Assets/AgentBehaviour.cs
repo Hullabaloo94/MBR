@@ -28,6 +28,9 @@ public class AgentBehaviour : MonoBehaviour {
 	private RaycastHit hit;
 	private float mostUnattractiveRating = 1.41421356237f;
 
+	// get the sexes 
+	private List<int> allSexesMinusOwn = new List<int>();
+	private List<int> tempList = new List<int>();
 
 	void Awake ()
 	{
@@ -68,6 +71,21 @@ public class AgentBehaviour : MonoBehaviour {
 	void Start () 
 	{
 		rightVector = -leftVector;
+
+		// get the sexes
+		if(agent.canGiveBirth == true){
+			allSexesMinusOwn = Enumerable.Range(0, AgentCreator.numOfSexesAndGenders).ToList();
+			// which aren't the agent's sex
+			allSexesMinusOwn.RemoveAt (agent.sex);
+			// Create a temp copy of the allSexesMinusOwn so that it can be changed.
+			tempList = allSexesMinusOwn;
+
+			Debug.Log (agent.appearance.name + "'s sex is : " + agent.sex + " and can give birth, it's tempList length is: " + tempList.Count);
+			foreach(var elem in tempList){
+				Debug.Log(elem);
+			}
+		}
+		
 	}
 
 
@@ -93,11 +111,6 @@ public class AgentBehaviour : MonoBehaviour {
 
 			initialiseConversation (agent.agentsICanSee [0], targetType);
 
-			var linksList = agent.links.Where (x => x.to == agent.agentsICanSee[0]);
-
-			for(int b = 0; b < linksList.ToList().Count; b++) {
-				Debug.Log (linksList.ElementAt (b).from.appearance.name + "'s relationship status with " + linksList.ElementAt (b).to.appearance.name + " is: " +linksList.ElementAt (b).type);
-			}
 		} else {
 			wander ();
 		}
@@ -153,7 +166,7 @@ public class AgentBehaviour : MonoBehaviour {
 		agentToChatWith.appearance.transform.rotation = Quaternion.Slerp (agentToChatWith.appearance.transform.rotation, directionOfAgent, Time.deltaTime * turningSpeed);
 
 		//Get all links with otherAgent (See if already met the agent)
-		var linksWithAgent = agent.links.Where (x => x.from == agentToChatWith || x.to == agentToChatWith);
+		var linksWithAgent = agent.links.Where (x => x.to == agentToChatWith);
 
 		// See if there is already this particular link with the agents:
 		//Find links which are of this type
@@ -204,13 +217,52 @@ public class AgentBehaviour : MonoBehaviour {
 	}
 
 	public void createLink(AgentInitialiser agentToLinkWith, string targetType){
-		
+
 		// Strength for the link.
 		float linkStrength = Random.Range (50, 101);
 
 		//Add the links to both agents
 		agent.links.Add (new Link (targetType, agent, agentToLinkWith, linkStrength) );
-		agentToLinkWith.links.Add (new Link (targetType, agentToLinkWith, agent, linkStrength) );
+
+		if (agent.canGiveBirth == true) {
+			Debug.Log (agent.links.Last ().from.appearance.name + "'s relationship status with " + agent.links.Last ().to.appearance.name + " is: " + agent.links.Last ().type);
+		}
+
+		// if one of the agents who is forming a love partnership can carry a child and is not already pregnant.
+		if(agent.links.Last().type == "Love Partner" && agent.canGiveBirth == true && agent.pregnant == false){
+
+			// Find all of the current Love partner links for this agent who are not the same sex as the agent.
+			var agentsLovePartners = agent.links.Where(x => x.type.Equals("Love Partner") && x.to.sex != agent.sex);  
+			// See if there is a love partnership with every OTHER sex available
+			if(agentsLovePartners.Count() != 0){
+
+				// check through all of the love links and remove the sex number from the array if one exists
+				for(int i = 0; i < allSexesMinusOwn.Count(); i++){
+
+					for(int j = 0; j < agentsLovePartners.Count(); j++){
+
+						// Sometimes this fires sometimes it doesn't???
+						if(allSexesMinusOwn[i] == agentsLovePartners.ElementAt(j).to.sex){
+
+							var foundIndex = tempList.IndexOf(allSexesMinusOwn[i]);
+							tempList.RemoveAt (foundIndex);
+							Debug.Log("templength: " + tempList.Count() + "Elements:");
+							foreach(var elem in tempList){
+								Debug.Log(elem);
+							
+							}
+							break;
+						}
+					}
+				}
+
+				if(tempList.Count == 0){
+				// if the array becomes empty then become pregnant with a child.
+					agent.pregnant = true;
+					Debug.Log ("Pregnancy status of " + agent.appearance.name + ": " + agent.pregnant);
+				}
+			}
+		}
 	}
 
 
@@ -244,7 +296,5 @@ public class AgentBehaviour : MonoBehaviour {
 		// Return the euclidean distance
 		return attractedRating;
 	}
-
-
 }
 
