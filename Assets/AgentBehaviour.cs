@@ -23,7 +23,6 @@ public class AgentBehaviour : MonoBehaviour {
 	private float heading;
 	private Vector3 targetRotation;	
 
-
 	private Vector3 rightVector;
 	private RaycastHit hit;
 	private float mostUnattractiveRating = 1.41421356237f;
@@ -31,6 +30,17 @@ public class AgentBehaviour : MonoBehaviour {
 	// get the sexes 
 	private List<int> allSexesMinusOwn = new List<int>();
 	private List<int> tempList = new List<int>();
+
+	public float pregnancyTimerDuration;
+	private float pregnancyTimer = 0.0f;
+
+	private float timeLeftOfLife;
+
+	// How long before another conversation can be had. (Stops huge groupings of people)
+	public float conversationIntervalDuration;
+	private float conversationIntervalTime = 0.0f;
+
+	List<AgentInitialiser> parents = new List<AgentInitialiser>();
 
 	void Awake ()
 	{
@@ -70,6 +80,12 @@ public class AgentBehaviour : MonoBehaviour {
 	// Use this for initialization
 	void Start () 
 	{
+		conversationIntervalTime = conversationIntervalDuration;
+
+		timeLeftOfLife = Random.Range(55, 105) - agent.age;
+
+		pregnancyTimer = pregnancyTimerDuration;
+
 		rightVector = -leftVector;
 
 		// get the sexes
@@ -80,16 +96,44 @@ public class AgentBehaviour : MonoBehaviour {
 			// Create a temp copy of the allSexesMinusOwn so that it can be changed.
 			tempList = allSexesMinusOwn;
 
-			Debug.Log (agent.appearance.name + "'s sex is : " + agent.sex + " and can give birth, it's tempList length is: " + tempList.Count);
-			foreach(var elem in tempList){
+			//Debug.Log (agent.appearance.name + "'s sex is : " + agent.sex + " and can give birth, it's tempList length is: " + tempList.Count);
+			/**foreach(var elem in tempList){
 				Debug.Log(elem);
-			}
+			}*/
 		}
 		
 	}
 
 
 	void FixedUpdate(){
+		
+		conversationIntervalTime -=  Time.deltaTime;
+
+		//Debug.Log (agent.appearance.name + "'s age: " + agent.age + ", agent has " + timeLeftOfLife + " time left on this earth");
+		timeLeftOfLife -= Time.deltaTime;
+		agent.age += Time.deltaTime;
+
+		if(timeLeftOfLife <= 0.0f){
+			// Time to Die!
+			Destroy (agent.appearance);
+		}
+
+		if(agent.pregnant == true){
+
+			// begin the pregnancy duration countdown - until baby is born.
+			pregnancyTimer -= Time.deltaTime;
+			//Debug.Log (pregnancyTimer);
+			// after timer is depleted
+			if(pregnancyTimer <= 0.0f){
+				agent.creator.haveChild (transform.position, true, Random.Range (50, 101), parents);
+				//Debug.Log ("Baby born!");
+
+				// reset values
+				parents.Clear();
+				agent.pregnant = false;
+				pregnancyTimer = pregnancyTimerDuration;
+			}
+		}
 
 		// fire rays to see if you can see anyone.
 		fireRays (transform.rotation);
@@ -104,12 +148,19 @@ public class AgentBehaviour : MonoBehaviour {
 				// Add this to the Dictionary of the agent's attraction percentages to ensure that the attraction percentage isn't regenerated everytime they meet.
 				agent.agentAttractionPercentages.Add (agent.agentsICanSee [0].id, (100 - (getEuclDistance (agent, agent.agentsICanSee [0]) / mostUnattractiveRating * 100)));
 			}
+				
+			if (conversationIntervalTime <= 0.0f) {
 
-			// use how attractive the agent finds the other agent, and vice versa to establish the link type. 
-			string targetType = establishLinkType (agent.agentsICanSee [0]);
-			//Debug.Log (agent.appearance.name + " finds " + agent.agentsICanSee [0].appearance.name + " to be " + agent.agentAttractionPercentages [agent.agentsICanSee [0].id] + "% attractive. This makes them in the category of " + targetType);
+				// use how attractive the agent finds the other agent, and vice versa to establish the link type. 
+				string targetType = establishLinkType (agent.agentsICanSee [0]);
+				//Debug.Log (agent.appearance.name + " finds " + agent.agentsICanSee [0].appearance.name + " to be " + agent.agentAttractionPercentages [agent.agentsICanSee [0].id] + "% attractive. This makes them in the category of " + targetType);
 
-			initialiseConversation (agent.agentsICanSee [0], targetType);
+				// I have waited long enough to have another conversation...
+				initialiseConversation (agent.agentsICanSee [0], targetType);
+
+			} else {
+				wander ();
+			}
 
 		} else {
 			wander ();
@@ -191,6 +242,10 @@ public class AgentBehaviour : MonoBehaviour {
 				createLink (agentToChatWith, targetType);
 			}
 		} else {
+			// See if there is a possibility for a child to be formed.
+			if(agent.canGiveBirth == true && targetType == "Love Partner"){
+				impregnantionChance ();
+			}
 			wander ();
 		}
 	}
@@ -202,7 +257,9 @@ public class AgentBehaviour : MonoBehaviour {
 		if (agent.agentAttractionPercentages[agentToLinkWith.id] >= loveThreshold) {
 
 			// if both can see one another and are attracted to one another :)
-			if (agentToLinkWith.agentAttractionPercentages.ContainsKey(agent.id) && agentToLinkWith.agentAttractionPercentages[agent.id] >= loveThreshold) {
+			if (agentToLinkWith.agentAttractionPercentages.ContainsKey(agent.id) && agentToLinkWith.agentAttractionPercentages[agent.id] >= loveThreshold
+				&& agent.age > 15 && agentToLinkWith.age > 15) { // And are both above the age of 16
+
 				targetType = "Love Partner";
 			} else {
 				// attracted to other agent but they are not attracted to the agent :(
@@ -224,47 +281,66 @@ public class AgentBehaviour : MonoBehaviour {
 		//Add the links to both agents
 		agent.links.Add (new Link (targetType, agent, agentToLinkWith, linkStrength) );
 
-		if (agent.canGiveBirth == true) {
+		/**if (agent.canGiveBirth == true) {
 			Debug.Log (agent.links.Last ().from.appearance.name + "'s relationship status with " + agent.links.Last ().to.appearance.name + " is: " + agent.links.Last ().type);
-		}
+		}*/
 
 		// if one of the agents who is forming a love partnership can carry a child and is not already pregnant.
-		if(agent.links.Last().type == "Love Partner" && agent.canGiveBirth == true && agent.pregnant == false){
+		if (agent.links.Last ().type == "Love Partner" && agent.canGiveBirth == true && agent.pregnant == false) {
 
-			// Find all of the current Love partner links for this agent who are not the same sex as the agent.
-			var agentsLovePartners = agent.links.Where(x => x.type.Equals("Love Partner") && x.to.sex != agent.sex);  
-			// See if there is a love partnership with every OTHER sex available
-			if(agentsLovePartners.Count() != 0){
-
-				// check through all of the love links and remove the sex number from the array if one exists
-				for(int i = 0; i < allSexesMinusOwn.Count(); i++){
-
-					for(int j = 0; j < agentsLovePartners.Count(); j++){
-
-						// Sometimes this fires sometimes it doesn't???
-						if(allSexesMinusOwn[i] == agentsLovePartners.ElementAt(j).to.sex){
-
-							var foundIndex = tempList.IndexOf(allSexesMinusOwn[i]);
-							tempList.RemoveAt (foundIndex);
-							Debug.Log("templength: " + tempList.Count() + "Elements:");
-							foreach(var elem in tempList){
-								Debug.Log(elem);
-							
-							}
-							break;
-						}
-					}
-				}
-
-				if(tempList.Count == 0){
-				// if the array becomes empty then become pregnant with a child.
-					agent.pregnant = true;
-					Debug.Log ("Pregnancy status of " + agent.appearance.name + ": " + agent.pregnant);
-				}
-			}
+			impregnantionChance ();
+		} else {
+			// Conversation and such done - reset timer.
+			conversationIntervalTime = conversationIntervalDuration;
 		}
 	}
 
+
+	public void impregnantionChance(){
+		// Find all of the current Love partner links for this agent who are not the same sex as the agent.
+		var agentsLovePartners = agent.links.Where(x => x.type.Equals("Love Partner") && x.to.sex != agent.sex);  
+		// See if there is a love partnership with every OTHER sex available
+		if(agentsLovePartners.Count() != 0){
+
+			// check through all of the love links and remove the sex number from the array if one exists
+			for(int i = 0; i < allSexesMinusOwn.Count(); i++){
+
+				for(int j = 0; j < agentsLovePartners.Count(); j++){
+
+					// Sometimes this fires sometimes it doesn't???
+					if(allSexesMinusOwn[i] == agentsLovePartners.ElementAt(j).to.sex){
+
+						// Add the potential parent to the list to be used for links later for both the parent and the child
+						parents.Add (agentsLovePartners.ElementAt(j).to);
+
+						var foundIndex = tempList.IndexOf(allSexesMinusOwn[i]);
+						tempList.RemoveAt (foundIndex);
+						//Debug.Log("templength: " + tempList.Count() + "Elements:");
+
+						/**foreach(var elem in tempList){
+							Debug.Log(elem);
+
+						}*/
+
+						break;
+					}
+				}
+			}
+
+			if(tempList.Count == 0){
+				// if the array becomes empty then become pregnant with a child.
+				agent.pregnant = true;
+				parents.Add (agent);
+				//Debug.Log ("Pregnancy status of " + agent.appearance.name + ": " + agent.pregnant);
+
+				// reset tempList so that they are capable of having another child
+				tempList = allSexesMinusOwn;
+			}
+		}
+
+		// Conversation and such done - reset timer.
+		conversationIntervalTime = conversationIntervalDuration;
+	}
 
 	public float getEuclDistance(AgentInitialiser initiator, AgentInitialiser spotted){
 		

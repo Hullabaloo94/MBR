@@ -28,7 +28,7 @@ public class AgentCreator : MonoBehaviour {
 	public static int numOfSexesAndGenders;
 
 	// Sexes who can give birth.
-	private int sexWhoCanGiveBirth;
+	public static int sexWhoCanGiveBirth;
 
 	//!!END of reproduction stuff!!
 
@@ -58,7 +58,7 @@ public class AgentCreator : MonoBehaviour {
 
 			// store the index of the sex which can give birth.
 			sexWhoCanGiveBirth = indexList.ElementAt(0);
-			//Debug.Log ("Index of the sex that can give birth : " + sexWhoCanGiveBirth);
+			Debug.Log ("Index of the sex that can give birth : " + sexWhoCanGiveBirth);
 
 		}
 
@@ -70,8 +70,6 @@ public class AgentCreator : MonoBehaviour {
 	{
 		for (var i = 0; i < amountToSpawn; i++) 
 		{
-			AgentInitialiser agent = new AgentInitialiser ();
-
 			// store the original starting position
 			var position = origin.position;
 			// alter the position slightly so all agents don't spawn on each other.
@@ -79,101 +77,11 @@ public class AgentCreator : MonoBehaviour {
 			position.y = 1;
 			position.z += Random.Range (-10, 10);
 
-			//generate the agent some attributes
-			agent.id = AgentInitialiser.getNextId();
-			agent.sex = genIdx (numOfSexesAndGenders);
+			// Create an instance of the agent with some predefined characteristics.
+			AgentInitialiser agent = new AgentInitialiser (position, genIdx (numOfSexesAndGenders), Random.value*100, Random.Range (0, 101), this);
 
-			// set if they can give birth or not.
-			if(agent.sex == sexWhoCanGiveBirth){
-				agent.canGiveBirth = true;
-			}
-
-			//instantiation stuff
-			switch(agent.sex){
-			case 0:
-				agent.appearance = Instantiate (agentPrefab, position, Quaternion.identity) as GameObject;
-				break;
-			case 1:
-				agent.appearance = Instantiate (agent2Prefab, position, Quaternion.identity) as GameObject;
-				break;
-			case 2:
-				agent.appearance = Instantiate (agent3Prefab, position, Quaternion.identity) as GameObject;
-				break;
-			case 3:
-				agent.appearance = Instantiate (agent4Prefab, position, Quaternion.identity) as GameObject;
-				break;
-			}
-
-			agent.appearance.transform.name = "Agent - " + agent.id;
-
-			// This will be used for collision of the agents themselves.
-			agent.appearance.GetComponent<AgentBehaviour> ().agent = agent;
-			//..
-
-			agent.age = Random.Range (20, 50);
-			agent.alive = true;
-			agent.loyalty = Random.value * 100;
-			agent.libido = Random.Range (0, 101);
-
-			//..
-
-			// numOfSexes biased animation curves then randomly generate the values to which will then be used as such: w% = w/(w+x+y+z)
-			for(int j = 0; j < numOfSexesAndGenders; j++){
-				// Ensure that a biased animation curve is used when evaluating the gender Norms / sexualPreference Norms of each sex.
-				if (agent.sex == j) {
-					agent.gender.Add(getPercentageFromAnimCurve (biasedTowardsPossibilityCurve));
-					//Debug.Log ("Agent's gender value at element " + j + ": " + agent.gender.ElementAt(j));
-					agent.sexPreferences.Add(getPercentageFromAnimCurve (biasedAgainstPossibilityCurve)); // more likely to be most interested in other genders - not same gender.
-				} else {
-					// Randomly assign which animation curve for each aspect of the gender of the agent that isnt the genderNorm of the sex.
-					int whichAnimCurve = Random.Range (0, 3);
-					switch(whichAnimCurve){
-					case 0:
-						agent.gender.Add(getPercentageFromAnimCurve (biasedTowardsPossibilityCurve));
-						//Debug.Log ("Agent's gender value at element " + j + ": " + agent.gender.ElementAt(j));
-						agent.sexPreferences.Add(getPercentageFromAnimCurve (biasedTowardsPossibilityCurve));
-						break;
-					case 1:
-						agent.gender.Add(getPercentageFromAnimCurve (linearPossibilityCurve));
-						//Debug.Log ("Agent's gender value at element " + j + ": "+ agent.gender.ElementAt(j));
-						agent.sexPreferences.Add(getPercentageFromAnimCurve (linearPossibilityCurve));
-						break;
-					case 2:
-						agent.gender.Add(getPercentageFromAnimCurve (biasedAgainstPossibilityCurve));
-						//Debug.Log ("Agent's gender value at element " + j + ": " + agent.gender.ElementAt(j));
-						agent.sexPreferences.Add(getPercentageFromAnimCurve (biasedAgainstPossibilityCurve));
-						break;
-					}
-				}
-			}
-
-			// Now we have values for each aspect of the agents gender, we now need to make them percentages.
-			float genderAspectsTotal = default(float);
-			// To do this, we first sum all of the aspects of the agent's gender
-			genderAspectsTotal = agent.gender.Sum(); 
-
-			// We then make each of the elements into percentages
-			for(int aspectOfGender = 0; aspectOfGender < agent.gender.Count; aspectOfGender++){
-				agent.gender[aspectOfGender] = agent.gender.ElementAt (aspectOfGender) / genderAspectsTotal; 
-				//Debug.Log (agent.appearance.name + "'s gender percentage for element " + aspectOfGender + ": " + agent.gender.ElementAt(aspectOfGender));
-			}
-			// All percentages added together should make 1
-			//Debug.Log (agent.appearance.name + "'s total gender percentage: " + agent.gender.Sum());
-
-			// We do the same for the sexual preferences!
-			//Debug.Log (agent.appearance.name + "'s sex: " + agent.sex);
-			float sexualPreferenceAspectsTotal = default(float);
-			sexualPreferenceAspectsTotal = agent.sexPreferences.Sum(); 
-
-			for(int aspectOfSexualPreference = 0; aspectOfSexualPreference < agent.gender.Count; aspectOfSexualPreference++){
-				agent.sexPreferences[aspectOfSexualPreference] = agent.sexPreferences.ElementAt (aspectOfSexualPreference) / sexualPreferenceAspectsTotal; 
-				//Debug.Log (agent.appearance.name + "'s sexual preference percentage for element " + aspectOfSexualPreference + ": " + agent.sexPreferences.ElementAt(aspectOfSexualPreference));
-			}
-			// All percentages added together should make 1
-			//Debug.Log (agent.appearance.name + "'s total sexual preference percentage: " + agent.sexPreferences.Sum());
-
-			// Set the colour of the agent based on their percentages of each gender aspect.
-			ColourCreator.getColour(agent);
+			// Generate the age
+			agent.age = Random.Range (20.0f, 50.0f);
 
 			//add them to the population.
 			population.Add(agent);
@@ -184,16 +92,33 @@ public class AgentCreator : MonoBehaviour {
 
 	}
 
+	public void haveChild(Vector3 position, bool DOA, float linkStrength, List<AgentInitialiser> parents){
+		// Choosing which of the parents sexes the child will inherit the sex from.
+		int babySex = parents[genIdx(parents.Count)].sex;
 
+		// Create the baby
+		AgentInitialiser baby = new AgentInitialiser(position, babySex, Random.value*100, Random.Range (0, 101), this);
+
+		// Link all of the agents which contributed to the birth of the child to the child.
+		// new link -> type, arrow coming from, arrow going to, link strength.
+		for(int i = 0; i < parents.Count(); i++){
+			baby.links.Add(new Link ("Child", baby, parents[i], linkStrength) );
+			parents[i].links.Add(new Link ("Parent", parents[i], baby, linkStrength) );
+
+			//Debug.Log (baby.links.Last ().from.appearance.name + "is a " + baby.links.Last ().type + " of " + baby.links.Last ().to.appearance.name);
+			//Debug.Log (parents[i].links.Last ().from.appearance.name + "is a " + parents[i].links.Last ().type + " of " + parents[i].links.Last ().to.appearance.name);
+		}
+
+		// Add to the overall population of the environment
+		population.Add(baby);
+	}
 
 	private void showAttributes(AgentInitialiser agent){ // Just outputs to console the particular agents attribute information.
-		//Debug.Log ("Agent Id: " + agent.id);
-		//Debug.Log ("Alive: " + agent.alive);
+		Debug.Log ("Agent Id: " + agent.id);
 		Debug.Log ("Sex: " + agent.sex);
-		//Debug.Log ("genderMasculinityPercentage: " + agent.genderMasculinityPercentage);
-		//Debug.Log ("Age: " + agent.age);
-		//Debug.Log ("Libido: " + agent.libido);
-		//Debug.Log("Loyalty: " + agent.loyalty);
+		Debug.Log ("Age: " + agent.age);
+		Debug.Log ("Libido: " + agent.libido);
+		Debug.Log("Loyalty: " + agent.loyalty);
 		Debug.Log("Can agent give birth: " + agent.canGiveBirth);
 	}
 
@@ -211,54 +136,36 @@ public class AgentCreator : MonoBehaviour {
 		return anAnimationCurve.Evaluate (x);
 	}
 
-	// Update is called once per frame
-	void Update () {
-		
-	}
-}
-	
-public class Link
-{
-	public AgentInitialiser to;
-	public AgentInitialiser from;
-
-	public string type;
-	public float strength;
-
-	public Link(string type, AgentInitialiser from, AgentInitialiser to, float strength)
+	public GameObject instantiatePrefab(Vector3 position, int sex)
 	{
-		this.type = type;
-		this.to = to;
-		this.from = from;
-		this.strength = strength;
+		//Return value is going to be a gameobject
+		var returnValue = default(GameObject);
+
+		switch(sex)
+		{
+			//Depending on the sex, instantiate a difference prefab
+			case 0:
+				returnValue = UnityEngine.Object.Instantiate (agentPrefab, position, Quaternion.identity) as GameObject;
+				break;
+
+			case 1:
+				returnValue = UnityEngine.Object.Instantiate (agent2Prefab, position, Quaternion.identity) as GameObject;
+				break;
+
+			case 2:
+				returnValue = UnityEngine.Object.Instantiate (agent3Prefab, position, Quaternion.identity) as GameObject;
+				break;
+
+			case 3:
+				returnValue = UnityEngine.Object.Instantiate (agent4Prefab, position, Quaternion.identity) as GameObject;
+				break;
+		}
+
+		//Return the appearance
+		return returnValue;
 	}
-}
 
-//Used to set up an agent.
-public class AgentInitialiser {
 
-	public List<Link> links = new List<Link>();
-	private static int lastId = 0;
-	public int id;
-	public GameObject appearance;
-	public int age;
-	public List<float> gender = new List<float>(); // Each sex will have numOfGender elements.
-	public int sex;
-	public bool alive;
-	public List<float> sexPreferences = new List<float>();
-	public Dictionary<int, float> agentAttractionPercentages = new Dictionary<int, float> (); 
-	public List<AgentInitialiser> agentsICanSee = new List<AgentInitialiser>();
-	public bool canGiveBirth = false;
-	public bool pregnant = false;
-
-	public float loyalty;
-	public int libido;
-
-	// Moves the id number along so no agent has the same ID.
-	public static int getNextId(){
-		return lastId++;
-	}
-		
 }
 
 public static class ShuffleExtension{
@@ -277,43 +184,3 @@ public static class ShuffleExtension{
 	}
 }
 
-public static class ColourCreator{
-
-	public static void getColour(AgentInitialiser agent){
-		Color[] colours = {
-			new Color (1.0F, 0.0F, 0.0F, 1.0F),
-			new Color (0.0F, 1.0F, 0.0F, 1.0F),
-			new Color (0.0F, 0.0F, 1.0F, 1.0F),
-			new Color (1.0F, 1.0F, 0.0F, 1.0F)
-		};
-
-		Color agentColour = new Color (0.0F, 0.0F, 0.0F, 1.0F);
-
-		int numOfGenders = agent.gender.Count;
-
-		for(int i = 0; i < numOfGenders; i++){
-			
-			// apply percentages to each colour up to the number of genders.
-			colours [i].r *= agent.gender.ElementAt (i); 
-			// normalise based on the number of genders there are.
-			colours[i].r /= numOfGenders;
-
-			// Do this for R, G and B of the colours used.
-			colours [i].g *= agent.gender.ElementAt (i); 
-			colours[i].g /= numOfGenders;
-
-			colours[i].b *= agent.gender.ElementAt (i); 
-			colours[i].b /= numOfGenders;
-		}
-
-		// Now, sum the colours used up and set the agent's r,g and b values to be the sums.
-		for (int i = 0; i < numOfGenders; i++) {
-			agentColour.r += colours [i].r;
-			agentColour.g += colours [i].g;
-			agentColour.b += colours [i].b;
-		}
-
-		// Apply the colour to the agent.
-		agent.appearance.GetComponent<Renderer> ().material.color = agentColour;	
-	}
-}
