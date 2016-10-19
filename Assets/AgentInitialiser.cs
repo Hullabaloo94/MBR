@@ -62,7 +62,8 @@ public static class ColourCreator{
 
 
 //Used to set up an agent.
-public class AgentInitialiser {
+[System.Serializable]
+public class AgentInitialiser : System.Object {
 	public AgentCreator creator;
 
 	public List<Link> links = new List<Link>();

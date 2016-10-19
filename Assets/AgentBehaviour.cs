@@ -25,7 +25,7 @@ public class AgentBehaviour : MonoBehaviour {
 
 	private Vector3 rightVector;
 	private RaycastHit hit;
-	private float mostUnattractiveRating = 1.41421356237f;
+	public static float mostUnattractiveRating = 1.41421356237f;
 
 	// get the sexes 
 	private List<int> allSexesMinusOwn = new List<int>();
@@ -152,7 +152,7 @@ public class AgentBehaviour : MonoBehaviour {
 			if (conversationIntervalTime <= 0.0f) {
 
 				// use how attractive the agent finds the other agent, and vice versa to establish the link type. 
-				string targetType = establishLinkType (agent.agentsICanSee [0]);
+				string targetType = establishLinkType (agent, agent.agentsICanSee [0]);
 				//Debug.Log (agent.appearance.name + " finds " + agent.agentsICanSee [0].appearance.name + " to be " + agent.agentAttractionPercentages [agent.agentsICanSee [0].id] + "% attractive. This makes them in the category of " + targetType);
 
 				// I have waited long enough to have another conversation...
@@ -250,7 +250,7 @@ public class AgentBehaviour : MonoBehaviour {
 		}
 	}
 
-	public string establishLinkType(AgentInitialiser agentToLinkWith){
+	public string establishLinkType(AgentInitialiser theAgent, AgentInitialiser agentToLinkWith){
 		string targetType;
 
 		// If this agent is attracted 
@@ -258,7 +258,7 @@ public class AgentBehaviour : MonoBehaviour {
 
 			// if both can see one another and are attracted to one another :)
 			if (agentToLinkWith.agentAttractionPercentages.ContainsKey(agent.id) && agentToLinkWith.agentAttractionPercentages[agent.id] >= loveThreshold
-				&& agent.age > 15 && agentToLinkWith.age > 15) { // And are both above the age of 16
+				&& agent.age > 15 && agentToLinkWith.age > 15) { // And are both above the age of 15
 
 				targetType = "Love Partner";
 			} else {

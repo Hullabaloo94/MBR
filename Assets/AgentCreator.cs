@@ -30,22 +30,24 @@ public class AgentCreator : MonoBehaviour {
 	// Sexes who can give birth.
 	public static int sexWhoCanGiveBirth;
 
+	public int numGenerationsSimulatedFromInitGeneration;
+
 	//!!END of reproduction stuff!!
 
 
 	// Use this for initialization
-	void Start () 
+	void Start ()
 	{
 		// Generate the number of sexes and genders that will form the society
-		numOfSexesAndGenders = (int) Mathf.Round(getPercentageFromAnimCurve(sexAndGenderValueFinderCurve));
+		numOfSexesAndGenders = (int)Mathf.Round (getPercentageFromAnimCurve (sexAndGenderValueFinderCurve));
 		Debug.Log ("The amount of sexes in the society is: " + numOfSexesAndGenders);
 
 		// Establish the child carrier sex of the society
-		if(numOfSexesAndGenders > 1){
+		if (numOfSexesAndGenders > 1) {
 			// Not asexual so establish the carrier sex/s...
 
 			// Make a list of all of the indexes of the sexes
-			var indexList = Enumerable.Range (0, numOfSexesAndGenders).ToList();
+			var indexList = Enumerable.Range (0, numOfSexesAndGenders).ToList ();
 			//for (int i = 0; i < indexList.Count; i++){
 			//	Debug.Log ("Original list element number: " + i + ": " + indexList[i]);
 			//}
@@ -57,14 +59,128 @@ public class AgentCreator : MonoBehaviour {
 			//}
 
 			// store the index of the sex which can give birth.
-			sexWhoCanGiveBirth = indexList.ElementAt(0);
+			sexWhoCanGiveBirth = indexList.ElementAt (0);
 			Debug.Log ("Index of the sex that can give birth : " + sexWhoCanGiveBirth);
 
 		}
 
 		initializePopulation (populationAmount);
 
+		createGenerations ();
 	}
+
+
+	private void createGenerations(){
+		
+		// Now that an initial population has spawned - simulate N generations from the initial population
+
+		// first for: N number of generations
+		for (int i = 0; i < numGenerationsSimulatedFromInitGeneration; i++) {
+			
+			// Second for: run through all of the agents current in the population (This will be larger each incrementation of the first for).	
+			for (int agentInPop = 0; agentInPop < population.Count (); agentInPop++) {
+
+				// Variables which will be reset for each agent in the population
+
+				// store the sexes which aren't this agents sex.
+				List<int> allSexesMinusOwn = new List<int> (); 
+				allSexesMinusOwn = Enumerable.Range (0, numOfSexesAndGenders).ToList ();
+				allSexesMinusOwn.RemoveAt (population [agentInPop].sex);
+				// Set tempList to the sexes List above so that the tempList can be altered whilst not changing the length used in the for loop for iteration.
+				List<int> tempList = allSexesMinusOwn;
+
+				// get agents behaviour script
+				AgentBehaviour behaviour = population [agentInPop].appearance.GetComponent<AgentBehaviour> ();
+				// get loveThreshold for this agent.
+				float loveThreshold = behaviour.loveThreshold;
+
+				//for 3.1: check sexPref vs Genders on all other initial agents to get attraction levels.
+				for (int otherAgent = 0; otherAgent < population.Count (); otherAgent++) {
+					// Be sure not to compare the agent itself against itself.
+					if(otherAgent != agentInPop){
+
+						// if never met them before - establish how attracted to them the agent is.
+						if (!population [agentInPop].agentAttractionPercentages.ContainsKey (population [otherAgent].id)) {
+							// Add this to the Dictionary of the agent's attraction percentages to ensure that the attraction percentage isn't regenerated everytime they meet.
+							population [agentInPop].agentAttractionPercentages.Add (population [otherAgent].id, (100 - (behaviour.getEuclDistance (population [agentInPop], population [otherAgent]) / AgentBehaviour.mostUnattractiveRating * 100)));
+						}
+
+						string targetType = behaviour.establishLinkType (population [agentInPop], population [otherAgent]);
+
+						//Get all links with otherAgent (See if already met the agent)
+						var linksWithAgent = population [agentInPop].links.Where (x => x.to == population [otherAgent]);
+						// See if there is already this particular link with the agents:
+						var filteredLinks = linksWithAgent.Where (x => x.type.Equals (targetType));
+						//So now if length is 0 then make a link because a link is yet to be made.
+						if (filteredLinks.Count () == 0) {
+							population [agentInPop].links.Add (new Link (targetType, population [agentInPop], population [otherAgent], Random.Range (50, 101)));
+						}
+					}
+				}
+
+				// --- All links made with other agents so second loop for the population is no longer needed to be open. ---
+				// Check all breeders if they are capable of producing a child with their lovepartners         
+				if (population [agentInPop].canGiveBirth && population [agentInPop].age > 15) { 
+					// Find all of the current Love partner links for this agent who are not the same sex as the agent and are over 15.
+					var agentsLovePartners = population [agentInPop].links.Where (x => x.type.Equals ("Love Partner") && x.to.sex != population [agentInPop].sex && x.to.age > 15);  
+
+					// See if there is a love partnership with every OTHER sex available which is old enough:
+					if (agentsLovePartners.Count () != 0) {
+						// stores all potential parents in here.
+						List<AgentInitialiser> parents = new List<AgentInitialiser>();
+
+						// for 3.2: for all of the sexes which aren't the agent's sex.
+						for (int sexes = 0; sexes < allSexesMinusOwn.Count (); sexes++) {
+							// for 3.2.1: for all of the links which are love partners of a different sex
+							for (int partner = 0; partner < agentsLovePartners.Count (); partner++) {
+								// if the love partner is a sex that is in the list of sexes
+								if (allSexesMinusOwn [sexes] == agentsLovePartners.ElementAt (partner).to.sex) {
+									// Add the potential parent to the list to be used for links later for both the parent and the child
+									parents.Add (agentsLovePartners.ElementAt (partner).to); 
+									// remove the love partner's sex from the list
+									var foundIndex = tempList.IndexOf (allSexesMinusOwn [sexes]);
+									tempList.RemoveAt (foundIndex);
+									// if at any point all of the sexes are catered for.
+									if (tempList.Count == 0) {
+										// Add the mother to the list of parents
+										parents.Add (population[agentInPop]);
+
+										// -----produce a child------
+										// CHOICE 1: if you don't want them all in the same position, just use this position variable in haveChild's first param:
+										var position = origin.position;
+										// alter the position slightly so all agents don't spawn on each other.
+										position.x += Random.Range (-20, 20);
+										position.y = 1;
+										position.z += Random.Range (-20, 20); 
+
+										haveChild (position, true, Random.Range (50, 101), parents);
+										// CHOICE 2: if you want the children and childrens children etc to all spawn on the original mothers location:
+										/*haveChild (population [agentInPop].appearance.transform.position, true, Random.Range (50, 101), parents);*/
+										//----produce a child----------
+
+										// reset lists
+										parents.Clear ();
+										tempList = allSexesMinusOwn;
+									}
+									// this break will take you back to for 3.2 (move on to the next sex to find if there is one.)
+									break;
+								}
+							}
+						}
+					}
+				}
+
+			}
+
+			// At end of all generations except the last generated: add 16 years on to the age as if that time has passed, 16 specifically so that that generations children can have children.
+			if(i < numGenerationsSimulatedFromInitGeneration-1){
+				for (int agentInPop = 0; agentInPop < population.Count (); agentInPop++) {population[agentInPop].age += 16;}
+			}
+
+		}
+
+	} 
+
 
 	private void initializePopulation(int amountToSpawn)
 	{
@@ -93,6 +209,7 @@ public class AgentCreator : MonoBehaviour {
 	}
 
 	public void haveChild(Vector3 position, bool DOA, float linkStrength, List<AgentInitialiser> parents){
+
 		// Choosing which of the parents sexes the child will inherit the sex from.
 		int babySex = parents[genIdx(parents.Count)].sex;
 
